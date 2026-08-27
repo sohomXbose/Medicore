@@ -18,11 +18,11 @@ Full-stack hospital management system (React + Node.js + Oracle) demonstrating c
 | API | REST |
 
 ## Repo Structure
-/db -> schema.sql, seed.sql, PL/SQL procedures/functions/triggers
-/backend -> Node.js + Express REST API
-/frontend -> React application
-/docs -> ER diagram, normalization writeup, phase gate artifacts, final report
 
+    /db          -> schema.sql, seed.sql, PL/SQL procedures/functions/triggers
+    /backend     -> Node.js + Express REST API
+    /frontend    -> React application
+    /docs        -> ER diagram, normalization writeup, phase gate artifacts, final report
 
 ## Team
 
