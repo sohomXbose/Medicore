@@ -19,10 +19,10 @@ The project workload is split across 4 distinct engineering domains:
 
 | Team Role | Lead Responsibilities & Owned Deliverables | Key Artifacts |
 | :--- | :--- | :--- |
-| **1. Database Architect** | ER Diagram modeling, 3NF/BCNF normalization proofs, primary/foreign key constraint enforcement, DDL schema generation, and initial seed datasets. | `schema.sql`<br>`seed.sql` |
-| **2. Backend REST Developer** | Node.js/Express REST API architecture, role-based JWT authentication middleware, business logic controllers, structured JSON error handling, and `/health` DB ping route. | `server.js`<br>`controllers/`<br>`routes/`<br>`middlewares/` |
-| **3. Advanced DBMS Engineer** | Compiled PL/SQL stored procedures, functions, explicit cursors, inventory auto-decrement triggers, atomic financial transactions (`SAVEPOINT`/`ROLLBACK`), 2PL concurrency scripts, B-Tree indexing, and crash recovery. | `docs/dbms-lab/` *(Scripts 01–10)* |
-| **4. Integration & Demo Lead** | Postman collection runner configuration, sequential end-to-end API test automation, visual screenshot proof capture, project report compilation, and GitHub repo management. | `postman/`<br>`test results/`<br>`docs/MediCore_Project_Report.pdf` |
+| **1. Database Architect [Srija Das]** | ER Diagram modeling, 3NF/BCNF normalization proofs, primary/foreign key constraint enforcement, DDL schema generation, and initial seed datasets. | `schema.sql`<br>`seed.sql` |
+| **2. Backend REST Developer [Agnish Mondal]** | Node.js/Express REST API architecture, role-based JWT authentication middleware, business logic controllers, structured JSON error handling, and `/health` DB ping route. | `server.js`<br>`controllers/`<br>`routes/`<br>`middlewares/` |
+| **3. Advanced DBMS Engineer [Deepayan Dey]** | Compiled PL/SQL stored procedures, functions, explicit cursors, inventory auto-decrement triggers, atomic financial transactions (`SAVEPOINT`/`ROLLBACK`), 2PL concurrency scripts, B-Tree indexing, and crash recovery. | `docs/dbms-lab/` *(Scripts 01–10)* |
+| **4. Integration & Demo Lead [Sohom Bose]** | Postman collection runner configuration, sequential end-to-end API test automation, visual screenshot proof capture, project report compilation, and GitHub repo management. | `postman/`<br>`test results/`<br>`docs/MediCore_Project_Report.pdf` |
 
 ---
 
