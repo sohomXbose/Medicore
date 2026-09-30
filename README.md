@@ -117,7 +117,7 @@ The `/docs/dbms-lab/` directory contains 10 standalone SQL scripts designed for 
 
 ## ⚡ How to Run Locally
 
-### 1. Prerequisites
+### 1. Prerequisits
 * Node.js (v18+)
 * Oracle Database Instance (Local or Cloud Autonomous DB)
 * Postman Client or SQL Developer / DBeaver
