@@ -1,0 +1,514 @@
+{
+  "info": {
+    "_postman_id": "medicore-demo-suite-v1",
+    "name": "MediCore REST API Demo Suite",
+    "description": "Complete, automated, runner-ready demonstration suite for MediCore Hospital Management System matching the Blueprint §4 demo script.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "patient_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "appointment_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "treatment_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "prescription_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "bill_id",
+      "value": "1",
+      "type": "string"
+    },
+    {
+      "key": "med_stock_before",
+      "value": "0",
+      "type": "string"
+    }
+  ],
+  "item": [
+    {
+      "name": "01. Auth - Login as Admin (Acquire JWT)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('JWT token is returned and role is ADMIN', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('token');",
+              "    pm.expect(jsonData.user.role).to.eql('ADMIN');",
+              "    pm.environment.set('token', jsonData.token);",
+              "    pm.collectionVariables.set('token', jsonData.token);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"email\": \"admin@medicore.com\",\n    \"password\": \"hash_admin\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/auth/login",
+          "host": ["{{base_url}}"],
+          "path": ["api", "auth", "login"]
+        }
+      }
+    },
+    {
+      "name": "02. Patient - Register New Patient",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Patient created and patient_id captured', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('patient_id');",
+              "    pm.environment.set('patient_id', String(jsonData.patient_id));",
+              "    pm.collectionVariables.set('patient_id', String(jsonData.patient_id));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"full_name\": \"Rohan Gupta\",\n    \"dob\": \"1998-05-12\",\n    \"gender\": \"MALE\",\n    \"phone\": \"9876500001\",\n    \"blood_group\": \"O+\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/patients",
+          "host": ["{{base_url}}"],
+          "path": ["api", "patients"]
+        }
+      }
+    },
+    {
+      "name": "03. Patient - Verify Registered Profile",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Patient details match registered data', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.FULL_NAME || jsonData.full_name).to.eql('Rohan Gupta');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/patients/{{patient_id}}",
+          "host": ["{{base_url}}"],
+          "path": ["api", "patients", "{{patient_id}}"]
+        }
+      }
+    },
+    {
+      "name": "04. Appointments - Book Appointment Slot",
+      "event": [
+        {
+          "listen": "prerequest",
+          "script": {
+            "exec": [
+              "// Dynamically generate a distinct future date and valid 24-hr time for this runner execution",
+              "// This guarantees Request 04 always has a fresh available slot,",
+              "// while Request 05 uses the exact same slot to verify 409 rejection.",
+              "var now = new Date();",
+              "var dayOffset = (Date.now() % 500) + 30; // 30 to 530 days in future",
+              "var futureDate = new Date(now.getTime() + (dayOffset * 86400000));",
+              "var yyyy = futureDate.getFullYear();",
+              "var mm = String(futureDate.getMonth() + 1).padStart(2, '0');",
+              "var dd = String(futureDate.getDate()).padStart(2, '0');",
+              "var slotDate = yyyy + '-' + mm + '-' + dd;",
+              "var hour = String(9 + Math.floor(Math.random() * 8)).padStart(2, '0');",
+              "var minute = String(Math.floor(Math.random() * 60)).padStart(2, '0');",
+              "var slotTime = hour + ':' + minute;",
+              "pm.environment.set('test_slot_date', slotDate);",
+              "pm.collectionVariables.set('test_slot_date', slotDate);",
+              "pm.environment.set('test_slot_time', slotTime);",
+              "pm.collectionVariables.set('test_slot_time', slotTime);"
+            ],
+            "type": "text/javascript"
+          }
+        },
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Appointment booked and appointment_id saved', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('appointment_id');",
+              "    pm.environment.set('appointment_id', String(jsonData.appointment_id));",
+              "    pm.collectionVariables.set('appointment_id', String(jsonData.appointment_id));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"doctor_id\": 1,\n    \"appointment_date\": \"{{test_slot_date}}\",\n    \"appointment_time\": \"{{test_slot_time}}\",\n    \"reason\": \"Routine Cardiologist Checkup\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/appointments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "appointments"]
+        }
+      }
+    },
+    {
+      "name": "05. Appointments - Reject Double Booking (409 Conflict)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 409 Conflict', function () {",
+              "    pm.response.to.have.status(409);",
+              "});",
+              "pm.test('Error body confirms duplicate slot conflict', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.error).to.include('already booked');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"doctor_id\": 1,\n    \"appointment_date\": \"{{test_slot_date}}\",\n    \"appointment_time\": \"{{test_slot_time}}\",\n    \"reason\": \"Duplicate booking attempt for same slot\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/appointments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "appointments"]
+        }
+      }
+    },
+    {
+      "name": "06. Treatments - Record Clinical Diagnosis",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Treatment recorded and treatment_id saved', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('treatment');",
+              "    pm.expect(jsonData.treatment.treatment_id).to.be.a('number');",
+              "    pm.environment.set('treatment_id', String(jsonData.treatment.treatment_id));",
+              "    pm.collectionVariables.set('treatment_id', String(jsonData.treatment.treatment_id));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"doctor_id\": 1,\n    \"appointment_id\": \"{{appointment_id}}\",\n    \"diagnosis\": \"Mild Arrhythmia and Viral Fever\",\n    \"treatment_notes\": \"Advised 3 days rest, low sodium intake, prescribed oral paracetamol.\"\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/treatments",
+          "host": ["{{base_url}}"],
+          "path": ["api", "treatments"]
+        }
+      }
+    },
+    {
+      "name": "07. Inventory - Inspect Medicine Stock Before Prescription",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Medicine stock captured for comparison', function () {",
+              "    var jsonData = pm.response.json();",
+              "    var med = jsonData.medicines.find(function(m) { return m.MEDICINE_ID === 1; });",
+              "    pm.expect(med).to.exist;",
+              "    pm.environment.set('med_stock_before', String(med.STOCK_QUANTITY));",
+              "    pm.collectionVariables.set('med_stock_before', String(med.STOCK_QUANTITY));",
+              "    console.log('Stock Before:', med.STOCK_QUANTITY);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/prescriptions/medicines/all",
+          "host": ["{{base_url}}"],
+          "path": ["api", "prescriptions", "medicines", "all"]
+        }
+      }
+    },
+    {
+      "name": "08. Prescriptions - Create Prescription (Fires DB Stock Trigger)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Prescription created with 10 units deduction', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('prescription_id');",
+              "    pm.expect(jsonData.items[0].deducted_units).to.eql(10);",
+              "    pm.environment.set('prescription_id', String(jsonData.prescription_id));",
+              "    pm.collectionVariables.set('prescription_id', String(jsonData.prescription_id));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"treatment_id\": \"{{treatment_id}}\",\n    \"items\": [\n        {\n            \"medicine_id\": 1,\n            \"dosage\": \"500 mg\",\n            \"frequency_per_day\": 2,\n            \"duration_days\": 5\n        }\n    ]\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/prescriptions",
+          "host": ["{{base_url}}"],
+          "path": ["api", "prescriptions"]
+        }
+      }
+    },
+    {
+      "name": "09. Inventory - Verify Stock Decremented by DB Trigger",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Medicine stock dropped by exactly 10 units via DB trigger', function () {",
+              "    var jsonData = pm.response.json();",
+              "    var med = jsonData.medicines.find(function(m) { return m.MEDICINE_ID === 1; });",
+              "    var stockBefore = Number(pm.environment.get('med_stock_before') || pm.collectionVariables.get('med_stock_before'));",
+              "    pm.expect(med.STOCK_QUANTITY).to.eql(stockBefore - 10);",
+              "    console.log('Stock dropped from ' + stockBefore + ' to ' + med.STOCK_QUANTITY);",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/prescriptions/medicines/all",
+          "host": ["{{base_url}}"],
+          "path": ["api", "prescriptions", "medicines", "all"]
+        }
+      }
+    },
+    {
+      "name": "10. Billing - Atomic Transaction (Multi-Table Bill + Payment)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 201 Created', function () {",
+              "    pm.response.to.have.status(201);",
+              "});",
+              "pm.test('Bill generated, payment recorded, status PAID', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.transaction.total_amount).to.eql(700);",
+              "    pm.expect(jsonData.transaction.amount_paid).to.eql(700);",
+              "    pm.expect(jsonData.transaction.status).to.eql('PAID');",
+              "    pm.environment.set('bill_id', String(jsonData.transaction.bill_id));",
+              "    pm.collectionVariables.set('bill_id', String(jsonData.transaction.bill_id));",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"items\": [\n        {\n            \"item_type\": \"CONSULTATION\",\n            \"description\": \"Doctor Specialist Consultation Fee\",\n            \"amount\": 600\n        },\n        {\n            \"item_type\": \"MEDICINE\",\n            \"description\": \"Prescription Medicines\",\n            \"amount\": 100\n        }\n    ],\n    \"payment\": {\n        \"amount_paid\": 700,\n        \"payment_mode\": \"UPI\"\n    }\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/bills/generate",
+          "host": ["{{base_url}}"],
+          "path": ["api", "bills", "generate"]
+        }
+      }
+    },
+    {
+      "name": "11. Billing - Deliberate Failure (ACID Atomicity Rollback Demo)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 400 Bad Request (Triggered Rollback)', function () {",
+              "    pm.response.to.have.status(400);",
+              "});",
+              "pm.test('Response confirms transaction was rolled back', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData.rolled_back).to.be.true;",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "POST",
+        "header": [
+          { "key": "Content-Type", "value": "application/json" },
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n    \"patient_id\": \"{{patient_id}}\",\n    \"items\": [\n        {\n            \"item_type\": \"CONSULTATION\",\n            \"description\": \"Failed Consultation Draft\",\n            \"amount\": 2500\n        }\n    ],\n    \"force_error\": true\n}"
+        },
+        "url": {
+          "raw": "{{base_url}}/api/bills/generate",
+          "host": ["{{base_url}}"],
+          "path": ["api", "bills", "generate"]
+        }
+      }
+    },
+    {
+      "name": "12. Reports - Live Department Revenue Aggregation (GROUP BY)",
+      "event": [
+        {
+          "listen": "test",
+          "script": {
+            "exec": [
+              "pm.test('Status code is 200 OK', function () {",
+              "    pm.response.to.have.status(200);",
+              "});",
+              "pm.test('Returns live financial totals and department array', function () {",
+              "    var jsonData = pm.response.json();",
+              "    pm.expect(jsonData).to.have.property('department_breakdown');",
+              "    pm.expect(jsonData).to.have.property('hospital_totals');",
+              "    pm.expect(jsonData.department_breakdown).to.be.an('array');",
+              "});"
+            ],
+            "type": "text/javascript"
+          }
+        }
+      ],
+      "request": {
+        "method": "GET",
+        "header": [
+          { "key": "Authorization", "value": "Bearer {{token}}" }
+        ],
+        "url": {
+          "raw": "{{base_url}}/api/reports/revenue",
+          "host": ["{{base_url}}"],
+          "path": ["api", "reports", "revenue"]
+        }
+      }
+    }
+  ]
+}

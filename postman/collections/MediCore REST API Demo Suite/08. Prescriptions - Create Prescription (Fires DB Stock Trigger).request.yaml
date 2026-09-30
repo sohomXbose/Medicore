@@ -1,0 +1,35 @@
+$kind: http-request
+url: "{{base_url}}/api/prescriptions"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+        "treatment_id": "{{treatment_id}}",
+        "items": [
+            {
+                "medicine_id": 1,
+                "dosage": "500 mg",
+                "frequency_per_day": 2,
+                "duration_days": 5
+            }
+        ]
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+      pm.test('Prescription created with 10 units deduction', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData).to.have.property('prescription_id');
+          pm.expect(jsonData.items[0].deducted_units).to.eql(10);
+          pm.environment.set('prescription_id', String(jsonData.prescription_id));
+          pm.collectionVariables.set('prescription_id', String(jsonData.prescription_id));
+      });
+    language: text/javascript
+order: 8000

@@ -1,0 +1,30 @@
+$kind: http-request
+url: "{{base_url}}/api/patients"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+        "full_name": "Rohan Gupta",
+        "dob": "1998-05-12",
+        "gender": "MALE",
+        "phone": "9876500001",
+        "blood_group": "O+"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+      pm.test('Patient created and patient_id captured', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData).to.have.property('patient_id');
+          pm.environment.set('patient_id', String(jsonData.patient_id));
+          pm.collectionVariables.set('patient_id', String(jsonData.patient_id));
+      });
+    language: text/javascript
+order: 2000

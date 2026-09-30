@@ -1,0 +1,16 @@
+name: MediCore Local Environment
+values:
+  - key: base_url
+    value: 'http://localhost:5000'
+  - key: token
+    value: ''
+  - key: patient_id
+    value: ''
+  - key: appointment_id
+    value: ''
+  - key: treatment_id
+    value: ''
+  - key: prescription_id
+    value: ''
+  - key: bill_id
+    value: ''

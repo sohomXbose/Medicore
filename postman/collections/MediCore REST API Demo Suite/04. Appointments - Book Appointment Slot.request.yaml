@@ -1,0 +1,50 @@
+$kind: http-request
+url: "{{base_url}}/api/appointments"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+        "patient_id": "{{patient_id}}",
+        "doctor_id": 1,
+        "appointment_date": "{{test_slot_date}}",
+        "appointment_time": "{{test_slot_time}}",
+        "reason": "Routine Cardiologist Checkup"
+    }
+scripts:
+  - type: beforeRequest
+    code: |-
+      // Dynamically generate a distinct future date and valid 24-hr time for this runner execution
+      // This guarantees Request 04 always has a fresh available slot,
+      // while Request 05 uses the exact same slot to verify 409 rejection.
+      var now = new Date();
+      var dayOffset = (Date.now() % 500) + 30; // 30 to 530 days in future
+      var futureDate = new Date(now.getTime() + (dayOffset * 86400000));
+      var yyyy = futureDate.getFullYear();
+      var mm = String(futureDate.getMonth() + 1).padStart(2, '0');
+      var dd = String(futureDate.getDate()).padStart(2, '0');
+      var slotDate = yyyy + '-' + mm + '-' + dd;
+      var hour = String(9 + Math.floor(Math.random() * 8)).padStart(2, '0');
+      var minute = String(Math.floor(Math.random() * 60)).padStart(2, '0');
+      var slotTime = hour + ':' + minute;
+      pm.environment.set('test_slot_date', slotDate);
+      pm.collectionVariables.set('test_slot_date', slotDate);
+      pm.environment.set('test_slot_time', slotTime);
+      pm.collectionVariables.set('test_slot_time', slotTime);
+    language: text/javascript
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+      pm.test('Appointment booked and appointment_id saved', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData).to.have.property('appointment_id');
+          pm.environment.set('appointment_id', String(jsonData.appointment_id));
+          pm.collectionVariables.set('appointment_id', String(jsonData.appointment_id));
+      });
+    language: text/javascript
+order: 4000

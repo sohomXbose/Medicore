@@ -1,0 +1,21 @@
+$kind: http-request
+url: "{{base_url}}/api/prescriptions/medicines/all"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test('Medicine stock captured for comparison', function () {
+          var jsonData = pm.response.json();
+          var med = jsonData.medicines.find(function(m) { return m.MEDICINE_ID === 1; });
+          pm.expect(med).to.exist;
+          pm.environment.set('med_stock_before', String(med.STOCK_QUANTITY));
+          pm.collectionVariables.set('med_stock_before', String(med.STOCK_QUANTITY));
+          console.log('Stock Before:', med.STOCK_QUANTITY);
+      });
+    language: text/javascript
+order: 7000

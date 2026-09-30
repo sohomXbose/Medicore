@@ -1,0 +1,31 @@
+$kind: http-request
+url: "{{base_url}}/api/treatments"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+        "patient_id": "{{patient_id}}",
+        "doctor_id": 1,
+        "appointment_id": "{{appointment_id}}",
+        "diagnosis": "Mild Arrhythmia and Viral Fever",
+        "treatment_notes": "Advised 3 days rest, low sodium intake, prescribed oral paracetamol."
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+      pm.test('Treatment recorded and treatment_id saved', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData).to.have.property('treatment');
+          pm.expect(jsonData.treatment.treatment_id).to.be.a('number');
+          pm.environment.set('treatment_id', String(jsonData.treatment.treatment_id));
+          pm.collectionVariables.set('treatment_id', String(jsonData.treatment.treatment_id));
+      });
+    language: text/javascript
+order: 6000

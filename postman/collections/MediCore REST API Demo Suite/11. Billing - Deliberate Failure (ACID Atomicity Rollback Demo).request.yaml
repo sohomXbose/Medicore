@@ -1,0 +1,32 @@
+$kind: http-request
+url: "{{base_url}}/api/bills/generate"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+        "patient_id": "{{patient_id}}",
+        "items": [
+            {
+                "item_type": "CONSULTATION",
+                "description": "Failed Consultation Draft",
+                "amount": 2500
+            }
+        ],
+        "force_error": true
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 400 Bad Request (Triggered Rollback)', function () {
+          pm.response.to.have.status(400);
+      });
+      pm.test('Response confirms transaction was rolled back', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.rolled_back).to.be.true;
+      });
+    language: text/javascript
+order: 11000

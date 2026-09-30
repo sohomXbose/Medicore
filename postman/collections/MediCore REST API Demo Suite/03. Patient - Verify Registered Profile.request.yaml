@@ -1,0 +1,17 @@
+$kind: http-request
+url: "{{base_url}}/api/patients/{{patient_id}}"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test('Patient details match registered data', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.FULL_NAME || jsonData.full_name).to.eql('Rohan Gupta');
+      });
+    language: text/javascript
+order: 3000

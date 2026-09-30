@@ -1,0 +1,27 @@
+$kind: http-request
+url: "{{base_url}}/api/auth/login"
+method: POST
+headers:
+  Content-Type: application/json
+body:
+  type: text
+  content: |-
+    {
+        "email": "admin@medicore.com",
+        "password": "hash_admin"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test('JWT token is returned and role is ADMIN', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData).to.have.property('token');
+          pm.expect(jsonData.user.role).to.eql('ADMIN');
+          pm.environment.set('token', jsonData.token);
+          pm.collectionVariables.set('token', jsonData.token);
+      });
+    language: text/javascript
+order: 1000

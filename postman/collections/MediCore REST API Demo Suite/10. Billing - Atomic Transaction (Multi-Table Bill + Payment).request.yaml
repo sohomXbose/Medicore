@@ -1,0 +1,44 @@
+$kind: http-request
+url: "{{base_url}}/api/bills/generate"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+        "patient_id": "{{patient_id}}",
+        "items": [
+            {
+                "item_type": "CONSULTATION",
+                "description": "Doctor Specialist Consultation Fee",
+                "amount": 600
+            },
+            {
+                "item_type": "MEDICINE",
+                "description": "Prescription Medicines",
+                "amount": 100
+            }
+        ],
+        "payment": {
+            "amount_paid": 700,
+            "payment_mode": "UPI"
+        }
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 201 Created', function () {
+          pm.response.to.have.status(201);
+      });
+      pm.test('Bill generated, payment recorded, status PAID', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.transaction.total_amount).to.eql(700);
+          pm.expect(jsonData.transaction.amount_paid).to.eql(700);
+          pm.expect(jsonData.transaction.status).to.eql('PAID');
+          pm.environment.set('bill_id', String(jsonData.transaction.bill_id));
+          pm.collectionVariables.set('bill_id', String(jsonData.transaction.bill_id));
+      });
+    language: text/javascript
+order: 10000

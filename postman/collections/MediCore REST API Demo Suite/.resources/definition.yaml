@@ -1,0 +1,13 @@
+$kind: collection
+description: Complete, automated, runner-ready demonstration suite for MediCore Hospital Management System matching the Blueprint §4 demo script.
+variables:
+  base_url: http://localhost:5000
+  token: ""
+  patient_id: "1"
+  appointment_id: "1"
+  treatment_id: "1"
+  prescription_id: "1"
+  bill_id: "1"
+  med_stock_before: "0"
+  test_slot_date: ""
+  test_slot_time: ""

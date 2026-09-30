@@ -1,0 +1,20 @@
+$kind: http-request
+url: "{{base_url}}/api/prescriptions/medicines/all"
+method: GET
+headers:
+  Authorization: Bearer {{token}}
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 200 OK', function () {
+          pm.response.to.have.status(200);
+      });
+      pm.test('Medicine stock dropped by exactly 10 units via DB trigger', function () {
+          var jsonData = pm.response.json();
+          var med = jsonData.medicines.find(function(m) { return m.MEDICINE_ID === 1; });
+          var stockBefore = Number(pm.environment.get('med_stock_before') || pm.collectionVariables.get('med_stock_before'));
+          pm.expect(med.STOCK_QUANTITY).to.eql(stockBefore - 10);
+          console.log('Stock dropped from ' + stockBefore + ' to ' + med.STOCK_QUANTITY);
+      });
+    language: text/javascript
+order: 9000

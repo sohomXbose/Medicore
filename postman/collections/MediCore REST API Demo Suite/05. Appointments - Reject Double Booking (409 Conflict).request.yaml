@@ -1,0 +1,28 @@
+$kind: http-request
+url: "{{base_url}}/api/appointments"
+method: POST
+headers:
+  Content-Type: application/json
+  Authorization: Bearer {{token}}
+body:
+  type: text
+  content: |-
+    {
+        "patient_id": "{{patient_id}}",
+        "doctor_id": 1,
+        "appointment_date": "{{test_slot_date}}",
+        "appointment_time": "{{test_slot_time}}",
+        "reason": "Duplicate booking attempt for same slot"
+    }
+scripts:
+  - type: afterResponse
+    code: |-
+      pm.test('Status code is 409 Conflict', function () {
+          pm.response.to.have.status(409);
+      });
+      pm.test('Error body confirms duplicate slot conflict', function () {
+          var jsonData = pm.response.json();
+          pm.expect(jsonData.error).to.include('already booked');
+      });
+    language: text/javascript
+order: 5000
